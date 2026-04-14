@@ -12,4 +12,4 @@ pre-commit:
 pre-push:
   commands:
     no-push-to-main:
-      run: sh -c 'b=$(git symbolic-ref HEAD 2>/dev/null | sed "s|refs/heads/||"); [ "$b" = "main" ] && echo "直接 main へのプッシュは禁止されています。" && exit 1 || exit 0'
+      run: bash -c 'b=$(git symbolic-ref HEAD 2>/dev/null | sed "s|refs/heads/||"); [ "$b" = "main" ] && echo "直接 main へのプッシュは禁止されています。" && exit 1 || exit 0'
