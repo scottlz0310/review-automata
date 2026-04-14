@@ -12,6 +12,6 @@ pre-commit:
       run: go build ./...
 
 pre-push:
-  scripts:
-    no-push-to-main.sh:
-      runner: bash
+  commands:
+    no-push-to-main:
+      run: bash lefthook/pre-push/no-push-to-main.sh
