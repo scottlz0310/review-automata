@@ -18,6 +18,7 @@ go test -v -race ./...                  # レース検出付き
 go test -run TestParser ./internal/parser/   # パッケージ絞り込み
 go test -v -race -coverprofile=coverage.out ./...  # カバレッジ計測
 golangci-lint run ./...                 # lint
+lefthook install                        # コミットフック登録（初回セットアップ時）
 ```
 
 ## アーキテクチャ

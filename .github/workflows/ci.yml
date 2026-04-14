@@ -26,6 +26,15 @@ jobs:
         with:
           version: latest
 
+      - name: Format check (gofmt)
+        run: |
+          files=$(gofmt -l ./...)
+          if [ -n "$files" ]; then
+            echo "以下のファイルがフォーマットされていません:"
+            echo "$files"
+            exit 1
+          fi
+
       - name: Test
         run: go test -v -race -coverprofile=coverage.out ./...
 
