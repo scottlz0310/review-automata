@@ -1,2 +1,2 @@
-// Package resolver locates a git repository under ~/src by name and origin URL.
+// Package resolver は、名前と origin URL をもとに ~/src 配下の Git リポジトリを特定します。
 package resolver

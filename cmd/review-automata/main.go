@@ -6,6 +6,6 @@ import (
 )
 
 func main() {
-	fmt.Fprintln(os.Stderr, "review-automata: not yet implemented")
+	fmt.Fprintln(os.Stderr, "review-automata: 未実装です")
 	os.Exit(1)
 }

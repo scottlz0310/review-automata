@@ -8,10 +8,10 @@
 
 **目標**: CI/CD・開発基盤の整備（Go）
 
-- [ ] Go プロジェクト構造（`cmd/` + `internal/`）
-- [ ] GitHub Actions CI (golangci-lint + go test + codecov)
-- [ ] pre-commit フック（main直push禁止含む）
-- [ ] CHANGELOG / tasks.md / docs/roadmap.md
+- [x] Go プロジェクト構造（`cmd/` + `internal/`）
+- [x] GitHub Actions CI (golangci-lint + go test + codecov)
+- [x] pre-commit フック（main直push禁止含む）
+- [x] CHANGELOG / tasks.md / docs/roadmap.md
 
 ---
 

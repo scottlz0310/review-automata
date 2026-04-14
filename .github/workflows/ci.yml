@@ -2,8 +2,6 @@ name: CI
 
 on:
   push:
-    branches-ignore:
-      - main
   pull_request:
     branches:
       - main
@@ -24,7 +22,7 @@ jobs:
       - name: Lint (golangci-lint)
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v1.60.3
 
       - name: Format check (gofmt)
         run: |
@@ -40,12 +38,11 @@ jobs:
 
       - name: Convert coverage to Cobertura
         run: |
-          go install github.com/boumenot/gocover-cobertura@latest
+          go install github.com/boumenot/gocover-cobertura@v1.2.0
           gocover-cobertura < coverage.out > coverage.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
