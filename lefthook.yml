@@ -12,6 +12,6 @@ pre-commit:
       run: go build ./...
 
 pre-push:
-  commands:
-    no-push-to-main:
-      run: 'b=$(git symbolic-ref HEAD 2>/dev/null | sed "s|refs/heads/||"); [ "$b" = "main" ] && echo "直接 main へのプッシュは禁止されています。" && exit 1 || exit 0'
+  scripts:
+    no-push-to-main.sh:
+      runner: bash
