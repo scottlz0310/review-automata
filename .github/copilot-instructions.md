@@ -164,7 +164,7 @@ gh pr create --title "v{X.Y.Z}: {タイトル}" --body "{説明}"
 #### 再レビュー依頼コマンド
 
 ```bash
-gh pr edit <PR番号> --add-reviewer "copilot-pull-request-reviewer[bot]"
+gh pr edit <PR番号> --add-reviewer "copilot-pull-request-reviewer"
 ```
 
 > **注意**: REST API によるレビューリクエストは偽成功・イベント非発火の問題があるため使用しない。

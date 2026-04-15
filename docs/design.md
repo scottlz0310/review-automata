@@ -27,7 +27,7 @@ CLI（実行エンジン）
 ```
 修正コミット・プッシュ
   ↓
-gh pr edit <PR番号> --add-reviewer "copilot-pull-request-reviewer[bot]"（トリガー）
+gh pr edit <PR番号> --add-reviewer "copilot-pull-request-reviewer"（トリガー）
   ↓
 Copilot レビュー実行
   ↓
@@ -65,7 +65,7 @@ Copilot レビュー実行
 ### 採用手段
 
 ```bash
-gh pr edit <PR番号> --add-reviewer "copilot-pull-request-reviewer[bot]"
+gh pr edit <PR番号> --add-reviewer "copilot-pull-request-reviewer"
 ```
 
 ### REST API との比較
