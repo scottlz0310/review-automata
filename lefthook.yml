@@ -3,10 +3,16 @@ shell: bash
 pre-commit:
   commands:
     go-fmt:
-      glob: "*.go"
-      run: gofmt -l {staged_files} | grep . && exit 1 || exit 0
+      glob: "**/*.go"
+      run: |
+        output=$(gofmt -l {staged_files}) || exit 1
+        if [ -n "$output" ]; then
+          echo "$output"
+          exit 1
+        fi
+        exit 0
     go-vet:
-      glob: "*.go"
+      glob: "**/*.go"
       run: go vet ./...
     go-build:
       run: go build ./...

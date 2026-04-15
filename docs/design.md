@@ -22,13 +22,15 @@ CLI（実行エンジン）
 
 ## モジュール構成（予定）
 
-| モジュール | 責務 |
-|-----------|------|
-| `mail_parser` | subject/本文パース、STOP判定 |
-| `repo_resolver` | ~/src からリポジトリ特定 |
-| `git_ops` | PR fetch & checkout |
-| `executor` | プロンプト構築・Claude CLI 呼び出し |
-| `cli` | エントリポイント |
+設計上の論理名と実装上のパッケージ名は分けて管理する。
+
+| 論理名 | 実装パッケージ / ディレクトリ | 責務 |
+|--------|------------------------------|------|
+| `mail_parser` | `internal/parser` | subject/本文パース、STOP判定 |
+| `repo_resolver` | `internal/resolver` | ~/src からリポジトリ特定 |
+| `git_ops` | `internal/git` | PR fetch & checkout |
+| `executor` | `internal/executor` | プロンプト構築・Claude CLI 呼び出し |
+| `cli` | `cmd/review-automata` | エントリポイント |
 
 ## STOP 条件
 
