@@ -32,7 +32,7 @@ internal/
   resolver/             ← ~/src 配下のリポジトリ特定
   git/                  ← PR fetch + checkout
   executor/             ← プロンプト構築・Claude CLI 委譲（STDIN）
-  reviewer/             ← gh CLI 経由の Copilot 再レビューリクエスト
+  reviewer/             ← 予定 (v0.6.0): gh CLI 経由の Copilot 再レビューリクエスト
 docs/
   design.md             ← 基本設計サマリ（参照元: Mcp-Docker#38）
   roadmap.md            ← リリース計画

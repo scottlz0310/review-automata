@@ -27,7 +27,7 @@ CLI（実行エンジン）
 ```
 修正コミット・プッシュ
   ↓
-gh review request（トリガー）
+gh pr edit <PR番号> --add-reviewer "copilot-pull-request-reviewer[bot]"（トリガー）
   ↓
 Copilot レビュー実行
   ↓
@@ -45,15 +45,16 @@ Copilot レビュー実行
 ## モジュール構成（予定）
 
 設計上の論理名と実装上のパッケージ名は分けて管理する。
+※ 「実装状況」列が「予定」のものは未実装。
 
-| 論理名 | 実装パッケージ / ディレクトリ | 責務 |
-|--------|------------------------------|------|
-| `mail_parser` | `internal/parser` | subject/本文パース、STOP判定 |
-| `repo_resolver` | `internal/resolver` | ~/src からリポジトリ特定 |
-| `git_ops` | `internal/git` | PR fetch & checkout |
-| `executor` | `internal/executor` | プロンプト構築・Claude CLI 呼び出し |
-| `reviewer` | `internal/reviewer` | gh CLI 経由の Copilot レビューリクエスト |
-| `cli` | `cmd/review-automata` | エントリポイント・ループ制御 |
+| 論理名 | 実装パッケージ / ディレクトリ | 責務 | 実装状況 |
+|--------|------------------------------|------|---------|
+| `mail_parser` | `internal/parser` | subject/本文パース、STOP判定 | 雛形あり |
+| `repo_resolver` | `internal/resolver` | ~/src からリポジトリ特定 | 雛形あり |
+| `git_ops` | `internal/git` | PR fetch & checkout | 雛形あり |
+| `executor` | `internal/executor` | プロンプト構築・Claude CLI 呼び出し | 雛形あり |
+| `reviewer` | `internal/reviewer` | gh CLI 経由の Copilot レビューリクエスト | **予定** (v0.6.0) |
+| `cli` | `cmd/review-automata` | エントリポイント・ループ制御 | 雛形あり |
 
 ---
 

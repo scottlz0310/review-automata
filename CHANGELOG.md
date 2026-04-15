@@ -9,14 +9,10 @@
 
 ## [Unreleased]
 
-### Added
-- `internal/reviewer` モジュール追加（gh CLI 経由の Copilot 再レビューリクエスト）
-- `docs/roadmap.md` に v0.6.0 フェーズを追加（Review Loop: Copilot 再レビュー自動化）
-
 ### Changed
-- `docs/design.md`: 自動ループフロー・reviewer モジュール・Copilot レビューリクエスト方針を追記
-- `.github/copilot-instructions.md`: reviewer モジュールをアーキテクチャに追加、再レビュー依頼コマンドを明記
-- 設計方針に「メール確定」原則を追加（gh レスポンスでなくメール受信を成功の確定イベントとする）
+- `docs/design.md`: 自動ループフロー・reviewer モジュール（予定）・Copilot レビューリクエスト方針・メール確定原則を追記
+- `docs/roadmap.md`: v0.6.0 フェーズ（Review Loop: Copilot 再レビュー自動化）を追加
+- `.github/copilot-instructions.md`: reviewer モジュール（予定）をアーキテクチャに追加、再レビュー依頼コマンドを明記
 
 ---
 
