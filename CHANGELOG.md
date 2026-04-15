@@ -9,6 +9,11 @@
 
 ## [Unreleased]
 
+### Added
+- `internal/parser`: `ParseSubject` — subject から owner/repo/PR番号を抽出（STOP条件: パース失敗）
+- `internal/parser`: `CleanBody` — GitHub 通知メールの不要フッター除去
+- `internal/parser/parser_test.go`: テーブル駆動テスト（正常系 4 / 異常系 5 の計 15 ケース）
+
 ### Changed
 - `docs/design.md`: 自動ループフロー・reviewer モジュール（予定）・Copilot レビューリクエスト方針・メール確定原則を追記
 - `docs/roadmap.md`: v0.6.0 フェーズ（Review Loop: Copilot 再レビュー自動化）を追加
