@@ -57,6 +57,17 @@
 
 ---
 
+## v0.6.0 — Review Loop: Copilot 再レビューリクエスト
+
+**目標**: 修正後の Copilot 再レビュー依頼を自動化し、ループを完結させる
+
+- `gh pr edit --add-reviewer "copilot-pull-request-reviewer[bot]"` による再依頼
+- レビュー完了通知メールによるループ継続判定（メール確定原則）
+- ループ終了条件の実装（blocking コメント 0 件 + CI SUCCESS）
+- REST API 非使用（[Mcp-Docker#38](https://github.com/scottlz0310/Mcp-Docker/issues/38) の実証結果に基づく）
+
+---
+
 ## v1.0.0 — 本実装: Gmail API + Cloud Pub/Sub
 
 **目標**: PoC から本番品質への移行
