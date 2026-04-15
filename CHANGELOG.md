@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### Changed
+- `docs/design.md`: 自動ループフロー・reviewer モジュール（予定）・Copilot レビューリクエスト方針・メール確定原則を追記
+- `docs/roadmap.md`: v0.6.0 フェーズ（Review Loop: Copilot 再レビュー自動化）を追加
+- `.github/copilot-instructions.md`: reviewer モジュール（予定）をアーキテクチャに追加、再レビュー依頼コマンドを明記
+
+---
+
+## [0.1.0] - 2026-04-15
+
 ### Added
 - Go プロジェクト構造（`cmd/review-automata/`, `internal/` パッケージ群）
 - `go.mod`（module: `github.com/scottlz0310/review-automata`）
