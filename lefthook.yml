@@ -1,0 +1,23 @@
+shell: bash
+
+pre-commit:
+  commands:
+    go-fmt:
+      glob: "**/*.go"
+      run: |
+        output=$(gofmt -l {staged_files}) || exit 1
+        if [ -n "$output" ]; then
+          echo "$output"
+          exit 1
+        fi
+        exit 0
+    go-vet:
+      glob: "**/*.go"
+      run: go vet ./...
+    go-build:
+      run: go build ./...
+
+pre-push:
+  commands:
+    no-push-to-main:
+      run: bash lefthook/pre-push/no-push-to-main.sh
