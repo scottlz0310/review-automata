@@ -68,6 +68,16 @@ func TestParseSubject(t *testing.T) {
 			subject: "[owner/repo] Something (PR #abc)",
 			wantErr: true,
 		},
+		{
+			name:    "異常系: repo に / が含まれる（[owner/repo/extra]）",
+			subject: "[owner/repo/extra] Something (PR #1)",
+			wantErr: true,
+		},
+		{
+			name:    "異常系: subject の前後に余分なテキスト",
+			subject: "prefix [owner/repo] Something (PR #1) suffix",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -132,6 +142,16 @@ func TestCleanBody(t *testing.T) {
 			name: "正常系: 空文字列",
 			body: "",
 			want: "",
+		},
+		{
+			name: "正常系: CRLF 本文のフッター除去",
+			body: "コメント内容\r\nYou are receiving this because you were mentioned.\r\n",
+			want: "コメント内容",
+		},
+		{
+			name: "正常系: 複数 marker が存在する場合は最も手前で切る",
+			body: "本文\nUnsubscribe from this list\nYou are receiving this because of something.\n",
+			want: "本文",
 		},
 	}
 
