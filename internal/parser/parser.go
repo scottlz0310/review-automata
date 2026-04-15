@@ -50,7 +50,7 @@ var cutMarkers = []string{
 	"Manage your GitHub notification settings",
 }
 
-// CleanBody は GitHub 通知メールの本文から不要なフッター／ヘッダーを除去します。
+// CleanBody は GitHub 通知メールの本文から不要なフッターを除去します。
 // CRLF は LF に正規化してから処理します。構造化は行わず、テキストのみを返します。
 func CleanBody(body string) string {
 	// CRLF → LF に正規化
