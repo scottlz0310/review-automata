@@ -33,12 +33,11 @@ func makeDir(t *testing.T, base string, parts ...string) string {
 }
 
 func TestResolve(t *testing.T) {
-	// 検証対象: Resolver.Resolve  目的: 正常系・STOP条件（0件/複数件/origin不一致/BaseDir不在/GitRunner未設定）を網羅
+	// 検証対象: Resolver.Resolve  目的: 正常系・STOP条件（0件/複数件/origin不一致/origin取得全失敗/BaseDir不在/GitRunner未設定）を網羅
 	tests := []struct {
 		name            string
 		dirs            [][]string // baseDir 配下に作るサブパス（nil = 作らない）
 		nonexistentBase bool       // true の場合 BaseDir を存在しないパスに設定
-		nilRunner       bool       // true の場合 GitRunner を nil に設定
 		owner           string
 		repo            string
 		setup           func(baseDir string) resolver.GitRunner
@@ -109,13 +108,21 @@ func TestResolve(t *testing.T) {
 			wantErr:         "リポジトリ検索失敗",
 		},
 		{
-			name:      "STOP: GitRunner が nil",
-			dirs:      [][]string{{"owner1", "myrepo"}},
-			nilRunner: true,
-			owner:     "owner1",
-			repo:      "myrepo",
-			setup:     func(baseDir string) resolver.GitRunner { return nil },
-			wantErr:   "GitRunner が未設定",
+			name:  "STOP: GitRunner が nil",
+			dirs:  [][]string{{"owner1", "myrepo"}},
+			owner: "owner1",
+			repo:  "myrepo",
+			setup: func(baseDir string) resolver.GitRunner { return nil },
+			wantErr: "GitRunner が未設定",
+		},
+		{
+			name:  "STOP: 全候補で origin 取得失敗",
+			dirs:  [][]string{{"owner1", "myrepo"}},
+			owner: "owner1",
+			repo:  "myrepo",
+			// mockGitRunner の urls に該当エントリがないため GetOriginURL はエラーを返す
+			setup:   func(baseDir string) resolver.GitRunner { return &mockGitRunner{} },
+			wantErr: "origin 取得失敗",
 		},
 	}
 

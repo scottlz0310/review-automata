@@ -83,14 +83,25 @@ func (r *Resolver) Resolve(owner, repo string) (string, error) {
 	}
 
 	var matched []string
+	var originErrs []string
+	originCheckedCount := 0
 	for _, dir := range candidates {
 		url, err := r.GitRunner.GetOriginURL(dir)
 		if err != nil {
-			continue // origin が取得できないディレクトリはスキップ
+			originErrs = append(originErrs, fmt.Sprintf("%s: %v", dir, err))
+			continue
 		}
+		originCheckedCount++
 		if originMatches(url, owner, repo) {
 			matched = append(matched, dir)
 		}
+	}
+
+	if originCheckedCount == 0 {
+		return "", fmt.Errorf(
+			"origin 取得失敗: %s/%s の候補 %d 件すべてで origin URL を取得できませんでした: %s",
+			owner, repo, len(candidates), strings.Join(originErrs, "; "),
+		)
 	}
 
 	switch len(matched) {
