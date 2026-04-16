@@ -33,14 +33,15 @@ func makeDir(t *testing.T, base string, parts ...string) string {
 }
 
 func TestResolve(t *testing.T) {
-	// 検証対象: Resolver.Resolve  目的: 正常系・STOP条件（0件/複数件/origin不一致/BaseDir不在）を網羅
+	// 検証対象: Resolver.Resolve  目的: 正常系・STOP条件（0件/複数件/origin不一致/BaseDir不在/GitRunner未設定）を網羅
 	tests := []struct {
 		name            string
 		dirs            [][]string // baseDir 配下に作るサブパス（nil = 作らない）
 		nonexistentBase bool       // true の場合 BaseDir を存在しないパスに設定
+		nilRunner       bool       // true の場合 GitRunner を nil に設定
 		owner           string
 		repo            string
-		setup           func(baseDir string) *mockGitRunner
+		setup           func(baseDir string) resolver.GitRunner
 		wantErr         string // 空文字なら正常系、含まれることを確認する文字列
 	}{
 		{
@@ -48,7 +49,7 @@ func TestResolve(t *testing.T) {
 			dirs:  [][]string{{"owner1", "myrepo"}},
 			owner: "owner1",
 			repo:  "myrepo",
-			setup: func(baseDir string) *mockGitRunner {
+			setup: func(baseDir string) resolver.GitRunner {
 				return &mockGitRunner{urls: map[string]string{
 					filepath.Join(baseDir, "owner1", "myrepo"): "https://github.com/owner1/myrepo.git",
 				}}
@@ -59,7 +60,7 @@ func TestResolve(t *testing.T) {
 			dirs:  [][]string{{"owner2", "myrepo"}},
 			owner: "owner2",
 			repo:  "myrepo",
-			setup: func(baseDir string) *mockGitRunner {
+			setup: func(baseDir string) resolver.GitRunner {
 				return &mockGitRunner{urls: map[string]string{
 					filepath.Join(baseDir, "owner2", "myrepo"): "git@github.com:owner2/myrepo",
 				}}
@@ -70,7 +71,7 @@ func TestResolve(t *testing.T) {
 			dirs:    [][]string{{"other", "otherrepo"}},
 			owner:   "owner1",
 			repo:    "myrepo",
-			setup:   func(baseDir string) *mockGitRunner { return &mockGitRunner{} },
+			setup:   func(baseDir string) resolver.GitRunner { return &mockGitRunner{} },
 			wantErr: "リポジトリ未検出",
 		},
 		{
@@ -78,7 +79,7 @@ func TestResolve(t *testing.T) {
 			dirs:  [][]string{{"owner1", "myrepo"}},
 			owner: "wrong-owner",
 			repo:  "myrepo",
-			setup: func(baseDir string) *mockGitRunner {
+			setup: func(baseDir string) resolver.GitRunner {
 				return &mockGitRunner{urls: map[string]string{
 					filepath.Join(baseDir, "owner1", "myrepo"): "https://github.com/owner1/myrepo.git",
 				}}
@@ -90,7 +91,7 @@ func TestResolve(t *testing.T) {
 			dirs:  [][]string{{"owner1", "myrepo"}, {"owner2", "myrepo"}},
 			owner: "owner1",
 			repo:  "myrepo",
-			setup: func(baseDir string) *mockGitRunner {
+			setup: func(baseDir string) resolver.GitRunner {
 				return &mockGitRunner{urls: map[string]string{
 					filepath.Join(baseDir, "owner1", "myrepo"): "https://github.com/owner1/myrepo.git",
 					// owner2 配下にも同じ origin を持つ同名リポジトリが存在する
@@ -104,8 +105,17 @@ func TestResolve(t *testing.T) {
 			nonexistentBase: true,
 			owner:           "owner1",
 			repo:            "myrepo",
-			setup:           func(baseDir string) *mockGitRunner { return &mockGitRunner{} },
+			setup:           func(baseDir string) resolver.GitRunner { return &mockGitRunner{} },
 			wantErr:         "リポジトリ検索失敗",
+		},
+		{
+			name:      "STOP: GitRunner が nil",
+			dirs:      [][]string{{"owner1", "myrepo"}},
+			nilRunner: true,
+			owner:     "owner1",
+			repo:      "myrepo",
+			setup:     func(baseDir string) resolver.GitRunner { return nil },
+			wantErr:   "GitRunner が未設定",
 		},
 	}
 
@@ -158,7 +168,7 @@ func TestResolve(t *testing.T) {
 
 func TestOriginMatchesVariants(t *testing.T) {
 	// 検証対象: originMatches（非公開関数のため Resolve 経由で間接的に検証）
-	// 目的: HTTPS/SSH/末尾.git有無の各 URL 形式で正しく一致するか確認
+	// 目的: HTTPS/SSH/末尾.git有無/非GitHubホストの各 URL 形式で正しく一致するか確認
 	tests := []struct {
 		name   string
 		url    string
@@ -172,6 +182,8 @@ func TestOriginMatchesVariants(t *testing.T) {
 		{"SSH .git なし", "git@github.com:owner1/myrepo", "owner1", "myrepo", true},
 		{"owner 不一致", "https://github.com/other/myrepo.git", "owner1", "myrepo", false},
 		{"repo 不一致", "https://github.com/owner1/other.git", "owner1", "myrepo", false},
+		{"GitLab URL は一致しない", "https://gitlab.com/owner1/myrepo.git", "owner1", "myrepo", false},
+		{"不明ホスト URL は一致しない", "https://example.com/owner1/myrepo", "owner1", "myrepo", false},
 	}
 
 	for _, tt := range tests {

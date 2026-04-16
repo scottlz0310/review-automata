@@ -20,11 +20,29 @@ type ExecGitRunner struct{}
 
 // GetOriginURL は git remote get-url origin でリモート URL を取得します。
 func (ExecGitRunner) GetOriginURL(dir string) (string, error) {
-	out, err := exec.Command("git", "-C", dir, "remote", "get-url", "origin").Output()
+	out, err := exec.Command("git", "-C", dir, "remote", "get-url", "origin").CombinedOutput()
 	if err != nil {
+		formatted := formatCommandOutput(out)
+		if formatted != "" {
+			return "", fmt.Errorf("origin URL の取得失敗 (%s): %s: %w", dir, formatted, err)
+		}
 		return "", fmt.Errorf("origin URL の取得失敗 (%s): %w", dir, err)
 	}
 	return strings.TrimSpace(string(out)), nil
+}
+
+// formatCommandOutput はコマンド出力をエラーメッセージ向けに整形します。
+func formatCommandOutput(out []byte) string {
+	s := strings.TrimSpace(string(out))
+	if s == "" {
+		return ""
+	}
+	s = strings.Join(strings.Fields(s), " ")
+	const maxLen = 200
+	if len(s) > maxLen {
+		return s[:maxLen] + "..."
+	}
+	return s
 }
 
 // Resolver は ~/src 配下のリポジトリを特定します。
@@ -34,10 +52,14 @@ type Resolver struct {
 }
 
 // New は Resolver を初期化します。BaseDir のデフォルトは ~/src です。
+// runner が nil の場合は ExecGitRunner をデフォルトとして使用します。
 func New(runner GitRunner) (*Resolver, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("ホームディレクトリの取得失敗: %w", err)
+	}
+	if runner == nil {
+		runner = ExecGitRunner{}
 	}
 	return &Resolver{
 		BaseDir:   filepath.Join(home, "src"),
@@ -48,6 +70,9 @@ func New(runner GitRunner) (*Resolver, error) {
 // Resolve は owner/repo に一致するローカルリポジトリのパスを返します。
 // 候補が 0件・複数件・origin 不一致の場合は STOP 条件として error を返します。
 func (r *Resolver) Resolve(owner, repo string) (string, error) {
+	if r.GitRunner == nil {
+		return "", fmt.Errorf("GitRunner が未設定です: Resolver を正しく初期化してください")
+	}
 	candidates, err := r.findCandidates(repo)
 	if err != nil {
 		return "", fmt.Errorf("リポジトリ検索失敗: %w", err)
@@ -101,10 +126,29 @@ func (r *Resolver) findCandidates(repo string) ([]string, error) {
 }
 
 // originMatches は git remote URL が owner/repo に一致するか確認します。
-// HTTPS 形式 (https://github.com/owner/repo[.git]) と
-// SSH 形式 (git@github.com:owner/repo[.git]) の両方に対応します。
+// GitHub の HTTPS 形式 (https://github.com/owner/repo[.git]) と
+// SSH 形式 (git@github.com:owner/repo[.git]) のみ受け付けます。
 func originMatches(url, owner, repo string) bool {
 	url = strings.TrimSpace(url)
-	url = strings.TrimSuffix(url, ".git")
-	return strings.HasSuffix(url, owner+"/"+repo)
+
+	const (
+		githubHTTPSPrefix = "https://github.com/"
+		githubSSHPrefix   = "git@github.com:"
+	)
+
+	var repoPath string
+	switch {
+	case strings.HasPrefix(url, githubHTTPSPrefix):
+		repoPath = strings.TrimPrefix(url, githubHTTPSPrefix)
+	case strings.HasPrefix(url, githubSSHPrefix):
+		repoPath = strings.TrimPrefix(url, githubSSHPrefix)
+	default:
+		return false
+	}
+
+	repoPath = strings.TrimSuffix(repoPath, "/")
+	repoPath = strings.TrimSuffix(repoPath, ".git")
+	repoPath = strings.TrimSuffix(repoPath, "/")
+
+	return repoPath == owner+"/"+repo
 }

@@ -26,7 +26,7 @@ func (m *mockCommander) Run(dir string, args ...string) (string, error) {
 }
 
 func TestFetchAndCheckout(t *testing.T) {
-	// 検証対象: FetchAndCheckout  目的: fetch/checkout の正常系・STOP条件を網羅
+	// 検証対象: FetchAndCheckout  目的: 入力検証・既存ブランチSTOP・fetch/checkoutの正常系・STOP条件を網羅
 	tests := []struct {
 		name      string
 		prNumber  int
@@ -35,25 +35,42 @@ func TestFetchAndCheckout(t *testing.T) {
 		wantCalls [][2]string // 期待するコマンド呼び出し [dir, args]
 	}{
 		{
-			name:      "正常: fetch と checkout が成功",
-			prNumber:  42,
-			cmdErrors: []error{nil, nil},
+			name:     "正常: fetch と checkout が成功",
+			prNumber: 42,
+			// rev-parse=失敗(ブランチなし), fetch=成功, checkout=成功
+			cmdErrors: []error{errors.New("no branch"), nil, nil},
 			wantCalls: [][2]string{
+				{"/repo", "rev-parse --verify pr-42"},
 				{"/repo", "fetch origin pull/42/head:pr-42"},
 				{"/repo", "checkout pr-42"},
 			},
 		},
 		{
-			name:      "STOP: fetch 失敗",
-			prNumber:  42,
-			cmdErrors: []error{errors.New("network error")},
+			name:     "STOP: fetch 失敗",
+			prNumber: 42,
+			// rev-parse=失敗(ブランチなし), fetch=失敗
+			cmdErrors: []error{errors.New("no branch"), errors.New("network error")},
 			wantErr:   "PR ブランチの取得失敗",
 		},
 		{
-			name:      "STOP: checkout 失敗",
-			prNumber:  99,
-			cmdErrors: []error{nil, errors.New("checkout error")},
+			name:     "STOP: checkout 失敗",
+			prNumber: 99,
+			// rev-parse=失敗(ブランチなし), fetch=成功, checkout=失敗
+			cmdErrors: []error{errors.New("no branch"), nil, errors.New("checkout error")},
 			wantErr:   "PR ブランチの checkout 失敗",
+		},
+		{
+			name:      "STOP: prNumber が 0 以下",
+			prNumber:  0,
+			cmdErrors: nil,
+			wantErr:   "PR番号が不正です",
+		},
+		{
+			name:     "STOP: 既存ブランチが存在する",
+			prNumber: 42,
+			// rev-parse=成功（ブランチ存在）
+			cmdErrors: []error{nil},
+			wantErr:   "が既に存在します",
 		},
 	}
 
