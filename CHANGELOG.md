@@ -10,6 +10,12 @@
 ## [Unreleased]
 
 ### Added
+- `internal/resolver`: `Resolver.Resolve` — `~/src` 配下から owner/repo に一致するリポジトリを特定（STOP条件: 0件/複数件/origin不一致）
+- `internal/resolver`: `GitRunner` インターフェース + `ExecGitRunner` 実装
+- `internal/resolver/resolver_test.go`: テーブル駆動テスト（正常系2件 + STOP 4件 + URL バリアント 6件）
+- `internal/git`: `FetchAndCheckout` — `git fetch origin pull/{N}/head:pr-{N}` + `git checkout pr-{N}`（STOP条件: fetch/checkout 失敗）
+- `internal/git`: `Commander` インターフェース + `ExecCommander` 実装
+- `internal/git/git_test.go`: テーブル駆動テスト（正常系1件 + STOP 2件）
 - `internal/parser`: `ParseSubject` — subject から owner/repo/PR番号を抽出（STOP条件: パース失敗）
 - `internal/parser`: `CleanBody` — GitHub 通知メールの不要フッター除去
 - `internal/parser/parser_test.go`: テーブル駆動テスト（正常系 4 / 異常系 5 の計 15 ケース）

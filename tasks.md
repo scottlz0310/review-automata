@@ -47,6 +47,22 @@ Epic: [#2](https://github.com/scottlz0310/review-automata/issues/2)
 
 ---
 
-## v0.3.0 以降
+## v0.3.0 — Repository Resolver + Git Operations
+
+Epic: [#3](https://github.com/scottlz0310/review-automata/issues/3)
+
+| # | Sub-Issue | タスク | 状態 |
+|---|-----------|--------|------|
+| 1 | - | repo 名で候補検索（`~/src` 配下） | ✅ |
+| 2 | - | origin URL による一致確認 | ✅ |
+| 3 | - | STOP 条件: 0件 / 複数件 / origin 不一致 | ✅ |
+| 4 | - | `git fetch origin pull/{PR}/head:pr-{PR}` + `git checkout pr-{PR}` | ✅ |
+| 5 | - | STOP 条件: checkout 失敗 | ✅ |
+| 6 | - | 既存ブランチへの影響ゼロ保証 | ✅ |
+| 7 | - | ユニットテスト | ✅ |
+
+---
+
+## v0.4.0 以降
 
 詳細設計後に展開。
