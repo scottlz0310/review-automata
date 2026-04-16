@@ -108,11 +108,11 @@ func TestResolve(t *testing.T) {
 			wantErr:         "リポジトリ検索失敗",
 		},
 		{
-			name:  "STOP: GitRunner が nil",
-			dirs:  [][]string{{"owner1", "myrepo"}},
-			owner: "owner1",
-			repo:  "myrepo",
-			setup: func(baseDir string) resolver.GitRunner { return nil },
+			name:    "STOP: GitRunner が nil",
+			dirs:    [][]string{{"owner1", "myrepo"}},
+			owner:   "owner1",
+			repo:    "myrepo",
+			setup:   func(baseDir string) resolver.GitRunner { return nil },
 			wantErr: "GitRunner が未設定",
 		},
 		{

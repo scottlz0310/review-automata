@@ -39,6 +39,9 @@ func (ExecCommander) Run(dir string, args ...string) (string, error) {
 //
 // 入力値不正・既存ブランチ・fetch/checkout の失敗は STOP 条件として error を返します。
 func FetchAndCheckout(dir string, prNumber int, cmd Commander) error {
+	if dir == "" {
+		return fmt.Errorf("対象ディレクトリが未指定です")
+	}
 	if prNumber <= 0 {
 		return fmt.Errorf("PR番号が不正です: %d", prNumber)
 	}

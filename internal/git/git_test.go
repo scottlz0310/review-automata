@@ -72,12 +72,22 @@ func TestFetchAndCheckout(t *testing.T) {
 			cmdErrors: []error{nil},
 			wantErr:   "が既に存在します",
 		},
+		{
+			name:      "STOP: dir が空文字",
+			prNumber:  42,
+			cmdErrors: nil,
+			wantErr:   "対象ディレクトリが未指定です",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			dir := "/repo"
+			if tt.wantErr == "対象ディレクトリが未指定です" {
+				dir = ""
+			}
 			cmd := &mockCommander{errors: tt.cmdErrors}
-			err := git.FetchAndCheckout("/repo", tt.prNumber, cmd)
+			err := git.FetchAndCheckout(dir, tt.prNumber, cmd)
 
 			if tt.wantErr != "" {
 				if err == nil {
