@@ -2,10 +2,15 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
 )
+
+// ErrBranchExists は対象の PR ブランチが既にローカルに存在することを示します。
+// 呼び出し元は errors.Is(err, ErrBranchExists) で判定できます。
+var ErrBranchExists = errors.New("ブランチが既に存在します")
 
 // Commander は git コマンドの実行を抽象化します。
 type Commander interface {
@@ -49,15 +54,49 @@ func FetchAndCheckout(dir string, prNumber int, cmd Commander) error {
 		return fmt.Errorf("Commander が未設定です")
 	}
 
-	// 既存ブランチの有無を事前確認: 存在する場合は STOP（既存ブランチへの影響を与えない）
+	// 既存ブランチの有無を事前確認: 存在する場合は ErrBranchExists を返す
 	branch := fmt.Sprintf("pr-%d", prNumber)
 	if _, err := cmd.Run(dir, "rev-parse", "--verify", branch); err == nil {
-		return fmt.Errorf("ブランチ %q が既に存在します: 既存ブランチへの影響を避けるため STOP します", branch)
+		return fmt.Errorf("ブランチ %q が既に存在します: %w", branch, ErrBranchExists)
 	}
 
 	refSpec := fmt.Sprintf("pull/%d/head:pr-%d", prNumber, prNumber)
 	if _, err := cmd.Run(dir, "fetch", "origin", refSpec); err != nil {
 		return fmt.Errorf("PR ブランチの取得失敗 (PR #%d): %w", prNumber, err)
+	}
+
+	if _, err := cmd.Run(dir, "checkout", branch); err != nil {
+		return fmt.Errorf("PR ブランチの checkout 失敗 (%s): %w", branch, err)
+	}
+
+	return nil
+}
+
+// ForceUpdate は既存の PR ブランチを強制的に最新化してチェックアウトします。
+// 現在 checkout 中のブランチを上書きできないため、先に main へ切り替えてから
+// fetch --force でローカルブランチを上書きし、再度 checkout します。
+// エージェント起動確認済み・または未起動の場合に呼び出してください。
+func ForceUpdate(dir string, prNumber int, cmd Commander) error {
+	if dir == "" {
+		return fmt.Errorf("対象ディレクトリが未指定です")
+	}
+	if prNumber <= 0 {
+		return fmt.Errorf("PR番号が不正です: %d", prNumber)
+	}
+	if cmd == nil {
+		return fmt.Errorf("Commander が未設定です")
+	}
+
+	branch := fmt.Sprintf("pr-%d", prNumber)
+
+	// 現在 pr-N が checkout 済みの場合 fetch --force が拒否されるため main に切り替える
+	if _, err := cmd.Run(dir, "checkout", "main"); err != nil {
+		return fmt.Errorf("main への切り替え失敗: %w", err)
+	}
+
+	refSpec := fmt.Sprintf("pull/%d/head:%s", prNumber, branch)
+	if _, err := cmd.Run(dir, "fetch", "origin", "--force", refSpec); err != nil {
+		return fmt.Errorf("PR ブランチの強制取得失敗 (PR #%d): %w", prNumber, err)
 	}
 
 	if _, err := cmd.Run(dir, "checkout", branch); err != nil {
