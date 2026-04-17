@@ -111,7 +111,7 @@ func buildHandler(rsv *resolver.Resolver, exc *executor.Executor) mail.MessageHa
 		}
 
 		cleaned := parser.CleanBody(body)
-		if err := exc.Run(meta.Owner, meta.Repo, meta.Number, cleaned); err != nil {
+		if err := exc.Run(meta.Owner, meta.Repo, meta.Number, cleaned, repoPath); err != nil {
 			return fmt.Errorf("STOP (executor 失敗): %w", err)
 		}
 		fmt.Fprintf(os.Stderr, "情報: PR #%d (%s/%s) の処理完了\n", meta.Number, meta.Owner, meta.Repo)

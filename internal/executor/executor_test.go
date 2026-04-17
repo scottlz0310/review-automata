@@ -26,11 +26,13 @@ func (m *mockProcessManager) Kill(_ []string) error {
 
 type mockCLIRunner struct {
 	capturedStdin string
+	capturedDir   string
 	err           error
 }
 
-func (m *mockCLIRunner) RunWithStdin(stdin string) error {
+func (m *mockCLIRunner) RunWithStdin(stdin, dir string) error {
 	m.capturedStdin = stdin
+	m.capturedDir = dir
 	return m.err
 }
 
@@ -185,9 +187,11 @@ func TestRun(t *testing.T) {
 		owner, repo string
 		prNumber    int
 		body        string
+		repoPath    string
 		runErr      error
 		wantErr     bool
 		wantSubstr  string
+		wantDir     string
 	}{
 		{
 			name:       "正常実行: stdin にリポジトリ情報が含まれる",
@@ -195,7 +199,9 @@ func TestRun(t *testing.T) {
 			repo:       "review-automata",
 			prNumber:   15,
 			body:       "コメント",
+			repoPath:   "/home/user/src/review-automata",
 			wantSubstr: "scottlz0310/review-automata",
+			wantDir:    "/home/user/src/review-automata",
 		},
 		{
 			name:       "正常実行: stdin にレビュー本文が含まれる",
@@ -203,6 +209,7 @@ func TestRun(t *testing.T) {
 			repo:       "r",
 			prNumber:   1,
 			body:       "レビュー本文テスト",
+			repoPath:   "/tmp/repo",
 			wantSubstr: "レビュー本文テスト",
 		},
 		{
@@ -221,12 +228,15 @@ func TestRun(t *testing.T) {
 			t.Parallel()
 			runner := &mockCLIRunner{err: tt.runErr}
 			exc := New(&mockProcessManager{}, runner)
-			err := exc.Run(tt.owner, tt.repo, tt.prNumber, tt.body)
+			err := exc.Run(tt.owner, tt.repo, tt.prNumber, tt.body, tt.repoPath)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.wantSubstr != "" && !strings.Contains(runner.capturedStdin, tt.wantSubstr) {
 				t.Errorf("Run() に渡された stdin に %q が含まれない\ngot:\n%s", tt.wantSubstr, runner.capturedStdin)
+			}
+			if tt.wantDir != "" && runner.capturedDir != tt.wantDir {
+				t.Errorf("Run() に渡された dir = %q, want %q", runner.capturedDir, tt.wantDir)
 			}
 		})
 	}

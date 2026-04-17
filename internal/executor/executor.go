@@ -17,9 +17,9 @@ type ProcessManager interface {
 }
 
 // CLIRunner は外部 CLI 実行の抽象インターフェースです。
-// stdin を受け取り claude CLI に委譲します。テストでのモック差し替えに使用します。
+// stdin と作業ディレクトリを受け取り claude CLI に委譲します。テストでのモック差し替えに使用します。
 type CLIRunner interface {
-	RunWithStdin(stdin string) error
+	RunWithStdin(stdin, dir string) error
 }
 
 // ExecProcessManager は実際の tasklist / taskkill コマンドを使う ProcessManager 実装です。
@@ -61,12 +61,16 @@ func (ExecProcessManager) Kill(names []string) error {
 type ExecCLIRunner struct{}
 
 // RunWithStdin は stdin をパイプして claude CLI を起動します。
+// dir が空でない場合は cmd.Dir に設定し、対象リポジトリのディレクトリで実行します。
 // 非ゼロ終了コードはエラーとして返します。
-func (ExecCLIRunner) RunWithStdin(stdin string) error {
+func (ExecCLIRunner) RunWithStdin(stdin, dir string) error {
 	cmd := exec.Command("claude")
 	cmd.Stdin = strings.NewReader(stdin)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	if dir != "" {
+		cmd.Dir = dir
+	}
 	if err := cmd.Run(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
@@ -120,9 +124,10 @@ func (e *Executor) BuildPrompt(owner, repo string, prNumber int, body string) st
 }
 
 // Run はプロンプトを構築して claude CLI に STDIN 経由で委譲します。
-func (e *Executor) Run(owner, repo string, prNumber int, body string) error {
+// repoPath は claude CLI の作業ディレクトリとして設定します。
+func (e *Executor) Run(owner, repo string, prNumber int, body, repoPath string) error {
 	prompt := e.BuildPrompt(owner, repo, prNumber, body)
-	if err := e.runner.RunWithStdin(prompt); err != nil {
+	if err := e.runner.RunWithStdin(prompt, repoPath); err != nil {
 		return fmt.Errorf("PR #%d (%s/%s) の claude CLI 実行失敗: %w", prNumber, owner, repo, err)
 	}
 	return nil

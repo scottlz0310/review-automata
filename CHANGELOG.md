@@ -11,7 +11,7 @@
 
 ---
 
-## [0.5.0] - 2026-04-17 (Unreleased)
+## [0.5.0] - 2026-04-17
 
 ### Added
 - `internal/executor`: `ProcessManager` インターフェース — `IsRunning` / `Kill` を抽象化（外部依存モック可能）
