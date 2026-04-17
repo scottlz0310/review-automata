@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -30,7 +31,7 @@ type mockCLIRunner struct {
 	err           error
 }
 
-func (m *mockCLIRunner) RunWithStdin(stdin, dir string) error {
+func (m *mockCLIRunner) RunWithStdin(_ context.Context, stdin, dir string) error {
 	m.capturedStdin = stdin
 	m.capturedDir = dir
 	return m.err
@@ -240,7 +241,7 @@ func TestRun(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = exc.Run(tt.owner, tt.repo, tt.prNumber, tt.body, tt.repoPath)
+			err = exc.Run(context.Background(), tt.owner, tt.repo, tt.prNumber, tt.body, tt.repoPath)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
 			}

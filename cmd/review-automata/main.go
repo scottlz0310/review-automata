@@ -45,10 +45,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "エラー: executor の初期化失敗: %v\n", err)
 		os.Exit(1)
 	}
-	handler := buildHandler(rsv, exc)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+
+	handler := buildHandler(ctx, rsv, exc)
 
 	fmt.Fprintf(os.Stderr, "情報: review-automata を起動しました (IMAP: %s, Mailbox: %s)\n", cfg.Addr, cfg.Mailbox)
 
@@ -66,7 +67,7 @@ func main() {
 // buildHandler は mail.MessageHandler を構築します。
 // パース失敗・リポジトリ未解決・checkout 失敗は STOP 条件として error を返しますが、
 // ループは継続します（次のメールを処理します）。
-func buildHandler(rsv *resolver.Resolver, exc *executor.Executor) mail.MessageHandler {
+func buildHandler(ctx context.Context, rsv *resolver.Resolver, exc *executor.Executor) mail.MessageHandler {
 	return func(subject, body string) error {
 		meta, err := parser.ParseSubject(subject)
 		if err != nil {
@@ -115,7 +116,7 @@ func buildHandler(rsv *resolver.Resolver, exc *executor.Executor) mail.MessageHa
 		}
 
 		cleaned := parser.CleanBody(body)
-		if err := exc.Run(meta.Owner, meta.Repo, meta.Number, cleaned, repoPath); err != nil {
+		if err := exc.Run(ctx, meta.Owner, meta.Repo, meta.Number, cleaned, repoPath); err != nil {
 			return fmt.Errorf("STOP (executor 失敗): %w", err)
 		}
 		fmt.Fprintf(os.Stderr, "情報: PR #%d (%s/%s) の処理完了\n", meta.Number, meta.Owner, meta.Repo)

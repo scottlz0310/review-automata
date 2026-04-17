@@ -2,6 +2,9 @@
 package executor
 
 import (
+	"bytes"
+	"context"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"os"
@@ -17,9 +20,9 @@ type ProcessManager interface {
 }
 
 // CLIRunner は外部 CLI 実行の抽象インターフェースです。
-// stdin と作業ディレクトリを受け取り claude CLI に委譲します。テストでのモック差し替えに使用します。
+// ctx・stdin・作業ディレクトリを受け取り claude CLI に委譲します。テストでのモック差し替えに使用します。
 type CLIRunner interface {
-	RunWithStdin(stdin, dir string) error
+	RunWithStdin(ctx context.Context, stdin, dir string) error
 }
 
 // ExecProcessManager は実際の tasklist / taskkill コマンドを使う ProcessManager 実装です。
@@ -27,15 +30,26 @@ type ExecProcessManager struct{}
 
 // IsRunning は names のうちいずれかのプロセスが起動中かどうかを返します。
 // tasklist の取得自体に失敗した場合はエラーを返します。
+// CSV の Image Name 列（1列目）と完全一致比較し、部分一致による誤検知を防ぎます。
 func (ExecProcessManager) IsRunning(names []string) (bool, error) {
 	out, err := exec.Command("tasklist", "/FO", "CSV", "/NH").Output()
 	if err != nil {
 		return false, fmt.Errorf("プロセス一覧の取得失敗: %w", err)
 	}
-	lower := strings.ToLower(string(out))
-	for _, name := range names {
-		if strings.Contains(lower, strings.ToLower(name)+".exe") {
-			return true, nil
+	reader := csv.NewReader(bytes.NewReader(out))
+	records, err := reader.ReadAll()
+	if err != nil {
+		return false, fmt.Errorf("プロセス一覧のパース失敗: %w", err)
+	}
+	for _, record := range records {
+		if len(record) == 0 {
+			continue
+		}
+		imageName := strings.ToLower(record[0])
+		for _, name := range names {
+			if imageName == strings.ToLower(name)+".exe" {
+				return true, nil
+			}
 		}
 	}
 	return false, nil
@@ -63,9 +77,11 @@ type ExecCLIRunner struct{}
 // RunWithStdin は stdin をパイプして claude CLI を起動します。
 // --print フラグにより非対話モードで実行し、stdin のプロンプトを処理させます。
 // dir が空でない場合は cmd.Dir に設定し、対象リポジトリのディレクトリで実行します。
+// ctx がキャンセルされると claude プロセスも終了します。
 // 非ゼロ終了コードはエラーとして返します。
-func (ExecCLIRunner) RunWithStdin(stdin, dir string) error {
-	cmd := exec.Command("claude", "--print")
+func (ExecCLIRunner) RunWithStdin(ctx context.Context, stdin, dir string) error {
+	fmt.Fprintf(os.Stderr, "情報: claude CLI を起動します (dir: %q)\n", dir)
+	cmd := exec.CommandContext(ctx, "claude", "--print")
 	cmd.Stdin = strings.NewReader(stdin)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -132,10 +148,10 @@ func (e *Executor) BuildPrompt(owner, repo string, prNumber int, body string) st
 }
 
 // Run はプロンプトを構築して claude CLI に STDIN 経由で委譲します。
-// repoPath は claude CLI の作業ディレクトリとして設定します。
-func (e *Executor) Run(owner, repo string, prNumber int, body, repoPath string) error {
+// ctx はキャンセル伝播に使用します。repoPath は claude CLI の作業ディレクトリとして設定します。
+func (e *Executor) Run(ctx context.Context, owner, repo string, prNumber int, body, repoPath string) error {
 	prompt := e.BuildPrompt(owner, repo, prNumber, body)
-	if err := e.runner.RunWithStdin(prompt, repoPath); err != nil {
+	if err := e.runner.RunWithStdin(ctx, prompt, repoPath); err != nil {
 		return fmt.Errorf("PR #%d (%s/%s) の claude CLI 実行失敗: %w", prNumber, owner, repo, err)
 	}
 	return nil

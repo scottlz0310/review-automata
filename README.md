@@ -120,6 +120,7 @@ go run ./cmd/review-automata/
 | リポジトリ複数検出 | 同名リポジトリが複数存在する |
 | origin 不一致 | `git remote get-url origin` が期待値と異なる |
 | PR checkout 失敗 | `git fetch` または `git checkout` が失敗 |
+| executor 失敗 | Claude CLI の起動失敗、または非ゼロ終了で `Executor.Run` が失敗 |
 
 ---
 
@@ -264,7 +265,7 @@ git push origin feature/v{X.Y.Z}-{概要}
 | v0.2.0 | ✅ リリース済み | メール subject / 本文パーサー |
 | v0.3.0 | ✅ リリース済み | リポジトリ特定・PR ブランチ checkout |
 | v0.4.0 | ✅ リリース済み | IMAP IDLE 統合・E2E 動作確認（Windows） |
-| v0.5.0 | 🚧 開発中 | Claude CLI Executor（プロンプト構築・委譲） |
+| v0.5.0 | ✅ リリース済み | Claude CLI Executor（プロンプト構築・委譲） |
 | v0.6.0 | 📋 予定 | Copilot 再レビューリクエスト自動化（gh CLI） |
 | v1.0.0 | 📋 予定 | Gmail API + Cloud Pub/Sub・本番品質移行 |
 
