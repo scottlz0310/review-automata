@@ -30,6 +30,7 @@ func TestFetchAndCheckout(t *testing.T) {
 	tests := []struct {
 		name      string
 		prNumber  int
+		nilCmd    bool        // true の場合 Commander に nil を渡す
 		cmdErrors []error
 		wantErr   string      // 空文字なら正常系
 		wantCalls [][2]string // 期待するコマンド呼び出し [dir, args]
@@ -92,6 +93,14 @@ func TestFetchAndCheckout(t *testing.T) {
 			wantErr:   "対象ディレクトリが未指定です",
 			wantCalls: nil, // 入力検証でSTOP: コマンド呼び出しなし
 		},
+		{
+			name:      "STOP: Commander が未設定 (nil)",
+			prNumber:  42,
+			nilCmd:    true,
+			cmdErrors: nil,
+			wantErr:   "Commander が未設定です",
+			wantCalls: nil, // 入力検証でSTOP: コマンド呼び出しなし
+		},
 	}
 
 	for _, tt := range tests {
@@ -100,8 +109,13 @@ func TestFetchAndCheckout(t *testing.T) {
 			if tt.wantErr == "対象ディレクトリが未指定です" {
 				dir = ""
 			}
-			cmd := &mockCommander{errors: tt.cmdErrors}
-			err := git.FetchAndCheckout(dir, tt.prNumber, cmd)
+			mockCmd := &mockCommander{errors: tt.cmdErrors}
+
+			var cmdArg git.Commander
+			if !tt.nilCmd {
+				cmdArg = mockCmd
+			}
+			err := git.FetchAndCheckout(dir, tt.prNumber, cmdArg)
 
 			if tt.wantErr != "" {
 				if err == nil {
@@ -117,13 +131,16 @@ func TestFetchAndCheckout(t *testing.T) {
 			}
 
 			// 成功系・失敗系の両方で、意図した位置で STOP しているかを検証
-			if len(cmd.calls) != len(tt.wantCalls) {
-				t.Errorf("呼び出し回数不一致: got %d, want %d", len(cmd.calls), len(tt.wantCalls))
-				return
-			}
-			for i, call := range cmd.calls {
-				if call != tt.wantCalls[i] {
-					t.Errorf("呼び出し[%d] 不一致: got %v, want %v", i, call, tt.wantCalls[i])
+			// nilCmd の場合はコマンド呼び出しが発生しないため calls は確認不要
+			if !tt.nilCmd {
+				if len(mockCmd.calls) != len(tt.wantCalls) {
+					t.Errorf("呼び出し回数不一致: got %d, want %d", len(mockCmd.calls), len(tt.wantCalls))
+					return
+				}
+				for i, call := range mockCmd.calls {
+					if call != tt.wantCalls[i] {
+						t.Errorf("呼び出し[%d] 不一致: got %v, want %v", i, call, tt.wantCalls[i])
+					}
 				}
 			}
 		})
