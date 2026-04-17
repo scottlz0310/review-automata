@@ -29,6 +29,9 @@ func (c *Config) validate() error {
 	if c.Addr == "" {
 		return fmt.Errorf("IMAP アドレスが未設定です")
 	}
+	if _, _, err := net.SplitHostPort(c.Addr); err != nil {
+		return fmt.Errorf("IMAP アドレスの形式が不正です（\"ホスト:ポート\" 形式で指定してください、例: \"imap.gmail.com:993\"）: %w", err)
+	}
 	if c.Username == "" {
 		return fmt.Errorf("ユーザー名が未設定です")
 	}
@@ -184,7 +187,7 @@ func (w *Watcher) fetchAndProcess(c *imapClient.Client, handler MessageHandler) 
 	seqset.AddNum(nums...)
 
 	section := &imap.BodySectionName{}
-	messages := make(chan *imap.Message, len(nums))
+	messages := make(chan *imap.Message, 10) // 固定バッファでメモリ使用量を抑制
 	fetchDone := make(chan error, 1)
 	go func() {
 		fetchDone <- c.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope, section.FetchItem()}, messages)

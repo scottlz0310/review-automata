@@ -47,6 +47,12 @@ func TestConfigValidate(t *testing.T) {
 			wantErr:     true,
 			errContains: "パスワードが未設定です",
 		},
+		{
+			name:        "異常: Addr にポートがない",
+			cfg:         Config{Addr: "imap.example.com", Username: "user@example.com", Password: "pass"},
+			wantErr:     true,
+			errContains: "IMAP アドレスの形式が不正です",
+		},
 	}
 
 	for _, tt := range tests {
