@@ -75,3 +75,17 @@ Epic: [#4](https://github.com/scottlz0310/review-automata/issues/4)
 | 4 | STOP 条件の統合（各パッケージ実装済み + main.go で連結） | ✅ |
 | 5 | `sample.env` 設定テンプレート | ✅ |
 | 6 | Windows 上での動作確認 | ✅ |
+
+---
+
+## v0.5.0 — Claude CLI Executor
+
+Epic: [#5](https://github.com/scottlz0310/review-automata/issues/5)
+
+| # | タスク | 状態 |
+|---|--------|------|
+| 1 | `ProcessManager` / `CLIRunner` インターフェース化（モック差し替え可能な設計） | ✅ |
+| 2 | プロンプトテンプレート実装（Mcp-Docker#38 仕様準拠） | ✅ |
+| 3 | STDIN 経由での `claude` CLI 呼び出し（終了コード・エラーハンドリング） | ✅ |
+| 4 | ユニットテスト（BuildPrompt / IsAgentRunning / KillAgent / Run） | ✅ |
+| 5 | `main.go` への統合（`Executor.Run` 呼び出し） | ✅ |
