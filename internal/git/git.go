@@ -73,7 +73,8 @@ func FetchAndCheckout(dir string, prNumber int, cmd Commander) error {
 }
 
 // ForceUpdate は既存の PR ブランチを強制的に最新化してチェックアウトします。
-// fetch --force でローカルブランチを上書きした後 checkout します。
+// 現在 checkout 中のブランチを上書きできないため、先に main へ切り替えてから
+// fetch --force でローカルブランチを上書きし、再度 checkout します。
 // エージェント起動確認済み・または未起動の場合に呼び出してください。
 func ForceUpdate(dir string, prNumber int, cmd Commander) error {
 	if dir == "" {
@@ -87,6 +88,12 @@ func ForceUpdate(dir string, prNumber int, cmd Commander) error {
 	}
 
 	branch := fmt.Sprintf("pr-%d", prNumber)
+
+	// 現在 pr-N が checkout 済みの場合 fetch --force が拒否されるため main に切り替える
+	if _, err := cmd.Run(dir, "checkout", "main"); err != nil {
+		return fmt.Errorf("main への切り替え失敗: %w", err)
+	}
+
 	refSpec := fmt.Sprintf("pull/%d/head:%s", prNumber, branch)
 	if _, err := cmd.Run(dir, "fetch", "origin", "--force", refSpec); err != nil {
 		return fmt.Errorf("PR ブランチの強制取得失敗 (PR #%d): %w", prNumber, err)
