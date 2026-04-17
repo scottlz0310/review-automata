@@ -77,11 +77,11 @@ func TestFetchAndCheckout(t *testing.T) {
 			wantCalls: nil, // 入力検証でSTOP: コマンド呼び出しなし
 		},
 		{
-			name:     "STOP: 既存ブランチが存在する",
+			name:     "STOP: 既存ブランチが存在する (ErrBranchExists)",
 			prNumber: 42,
 			// rev-parse=成功（ブランチ存在）
 			cmdErrors: []error{nil},
-			wantErr:   "が既に存在します",
+			wantErr:   git.ErrBranchExists.Error(),
 			wantCalls: [][2]string{
 				{"/repo", "rev-parse --verify pr-42"},
 			},
@@ -133,6 +133,118 @@ func TestFetchAndCheckout(t *testing.T) {
 			// 成功系・失敗系の両方で、意図した位置で STOP しているかを検証
 			// nilCmd の場合はコマンド呼び出しが発生しないため calls は確認不要
 			if !tt.nilCmd {
+				if len(mockCmd.calls) != len(tt.wantCalls) {
+					t.Errorf("呼び出し回数不一致: got %d, want %d", len(mockCmd.calls), len(tt.wantCalls))
+					return
+				}
+				for i, call := range mockCmd.calls {
+					if call != tt.wantCalls[i] {
+						t.Errorf("呼び出し[%d] 不一致: got %v, want %v", i, call, tt.wantCalls[i])
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestFetchAndCheckout_ErrBranchExists(t *testing.T) {
+	// 検証対象: FetchAndCheckout  目的: 既存ブランチ時に errors.Is で ErrBranchExists を判定できること
+	mockCmd := &mockCommander{errors: []error{nil}} // rev-parse 成功 = ブランチ存在
+	err := git.FetchAndCheckout("/repo", 42, mockCmd)
+	if err == nil {
+		t.Fatal("エラーを期待しましたが got nil")
+	}
+	if !errors.Is(err, git.ErrBranchExists) {
+		t.Errorf("errors.Is(err, ErrBranchExists) = false, got %v", err)
+	}
+}
+
+func TestForceUpdate(t *testing.T) {
+	// 検証対象: ForceUpdate  目的: 入力検証・fetch --force + checkout の正常系・失敗系を網羅
+	tests := []struct {
+		name      string
+		dir       string
+		prNumber  int
+		nilCmd    bool
+		cmdErrors []error
+		wantErr   string
+		wantCalls [][2]string
+	}{
+		{
+			name:      "正常: fetch --force と checkout が成功",
+			dir:       "/repo",
+			prNumber:  42,
+			cmdErrors: []error{nil, nil},
+			wantCalls: [][2]string{
+				{"/repo", "fetch origin --force pull/42/head:pr-42"},
+				{"/repo", "checkout pr-42"},
+			},
+		},
+		{
+			name:      "STOP: fetch --force 失敗",
+			dir:       "/repo",
+			prNumber:  42,
+			cmdErrors: []error{errors.New("network error")},
+			wantErr:   "PR ブランチの強制取得失敗",
+			wantCalls: [][2]string{
+				{"/repo", "fetch origin --force pull/42/head:pr-42"},
+			},
+		},
+		{
+			name:      "STOP: checkout 失敗",
+			dir:       "/repo",
+			prNumber:  42,
+			cmdErrors: []error{nil, errors.New("checkout error")},
+			wantErr:   "PR ブランチの checkout 失敗",
+			wantCalls: [][2]string{
+				{"/repo", "fetch origin --force pull/42/head:pr-42"},
+				{"/repo", "checkout pr-42"},
+			},
+		},
+		{
+			name:     "STOP: dir が空文字",
+			dir:      "",
+			prNumber: 42,
+			wantErr:  "対象ディレクトリが未指定です",
+		},
+		{
+			name:     "STOP: prNumber が 0 以下",
+			dir:      "/repo",
+			prNumber: 0,
+			wantErr:  "PR番号が不正です",
+		},
+		{
+			name:     "STOP: Commander が nil",
+			dir:      "/repo",
+			prNumber: 42,
+			nilCmd:   true,
+			wantErr:  "Commander が未設定です",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockCmd := &mockCommander{errors: tt.cmdErrors}
+			var cmdArg git.Commander
+			if !tt.nilCmd {
+				cmdArg = mockCmd
+			}
+			err := git.ForceUpdate(tt.dir, tt.prNumber, cmdArg)
+
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Errorf("エラーを期待しましたが got nil")
+					return
+				}
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Errorf("エラーメッセージ不一致: got %q, want contains %q", err.Error(), tt.wantErr)
+				}
+			} else if err != nil {
+				t.Errorf("予期しないエラー: %v", err)
+				return
+			}
+
+			if !tt.nilCmd && tt.wantCalls != nil {
 				if len(mockCmd.calls) != len(tt.wantCalls) {
 					t.Errorf("呼び出し回数不一致: got %d, want %d", len(mockCmd.calls), len(tt.wantCalls))
 					return

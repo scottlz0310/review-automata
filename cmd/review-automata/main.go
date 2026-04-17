@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/scottlz0310/review-automata/internal/executor"
 	"github.com/scottlz0310/review-automata/internal/git"
 	"github.com/scottlz0310/review-automata/internal/mail"
 	"github.com/scottlz0310/review-automata/internal/parser"
@@ -70,7 +74,28 @@ func buildHandler(rsv *resolver.Resolver) mail.MessageHandler {
 		}
 
 		if err := git.FetchAndCheckout(repoPath, meta.Number, git.ExecCommander{}); err != nil {
-			return fmt.Errorf("STOP (checkout 失敗): %w", err)
+			if !errors.Is(err, git.ErrBranchExists) {
+				return fmt.Errorf("STOP (checkout 失敗): %w", err)
+			}
+			// ブランチ既存 → エージェント起動確認 → 強制更新
+			if executor.IsAgentRunning() {
+				fmt.Fprintf(os.Stderr,
+					"警告: PR #%d のブランチが既に存在し、エージェント CLI が起動中です。強制更新して処理しますか? [y/N]: ",
+					meta.Number)
+				scanner := bufio.NewScanner(os.Stdin)
+				scanner.Scan()
+				answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+				if answer != "y" {
+					return fmt.Errorf("STOP (ユーザーキャンセル): PR #%d のブランチ強制更新をスキップしました", meta.Number)
+				}
+				if err := executor.KillAgent(); err != nil {
+					return fmt.Errorf("STOP (エージェント終了失敗): %w", err)
+				}
+				fmt.Fprintln(os.Stderr, "情報: エージェント CLI を終了しました")
+			}
+			if err := git.ForceUpdate(repoPath, meta.Number, git.ExecCommander{}); err != nil {
+				return fmt.Errorf("STOP (checkout 失敗): %w", err)
+			}
 		}
 
 		cleaned := parser.CleanBody(body)
