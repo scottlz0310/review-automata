@@ -57,8 +57,11 @@ func New(cfg Config) *Watcher {
 
 // Watch は IDLE でメールボックスを監視し、新着メールを handler に渡します。
 // ctx がキャンセルされると終了します。
-// 設定エラー・接続失敗は即座に error を返します。
+// 設定エラー・handler 未設定・接続失敗は即座に error を返します。
 func (w *Watcher) Watch(ctx context.Context, handler MessageHandler) error {
+	if handler == nil {
+		return fmt.Errorf("ハンドラーが未設定です")
+	}
 	if err := w.cfg.validate(); err != nil {
 		return fmt.Errorf("IMAP 設定エラー: %w", err)
 	}
@@ -164,7 +167,7 @@ func (w *Watcher) idleLoop(ctx context.Context, c *imapClient.Client, handler Me
 }
 
 // fetchAndProcess は UNSEEN メッセージを取得し handler に渡します。
-// 処理後、各メッセージに SEEN フラグを設定します。
+// handler が成功したメッセージのみ SEEN フラグを設定します（失敗時は未読のまま残り再処理可能）。
 func (w *Watcher) fetchAndProcess(c *imapClient.Client, handler MessageHandler) error {
 	criteria := imap.NewSearchCriteria()
 	criteria.WithoutFlags = []string{imap.SeenFlag}
@@ -224,7 +227,8 @@ func (w *Watcher) fetchAndProcess(c *imapClient.Client, handler MessageHandler) 
 }
 
 // extractTextBody は IMAP メッセージから text/plain 部分を抽出します。
-// MIME パースに失敗した場合は raw ボディを返します。
+// MIME リーダーが完全に生成できなかった場合は raw ボディを返します。
+// text/plain パートが見つからない場合は空文字を返します。
 func extractTextBody(msg *imap.Message, section *imap.BodySectionName) string {
 	r := msg.GetBody(section)
 	if r == nil {
