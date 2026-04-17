@@ -40,7 +40,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	exc := executor.New(executor.ExecProcessManager{}, executor.ExecCLIRunner{})
+	exc, err := executor.New(executor.ExecProcessManager{}, executor.ExecCLIRunner{})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "エラー: executor の初期化失敗: %v\n", err)
+		os.Exit(1)
+	}
 	handler := buildHandler(rsv, exc)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)

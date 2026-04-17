@@ -41,7 +41,10 @@ func (m *mockCLIRunner) RunWithStdin(stdin, dir string) error {
 func TestBuildPrompt(t *testing.T) {
 	t.Parallel()
 
-	exc := New(&mockProcessManager{}, &mockCLIRunner{})
+	exc, err := New(&mockProcessManager{}, &mockCLIRunner{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	tests := []struct {
 		name       string
@@ -135,7 +138,10 @@ func TestIsAgentRunning(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			proc := &mockProcessManager{running: tt.mockRunning, runErr: tt.mockErr}
-			exc := New(proc, &mockCLIRunner{})
+			exc, err := New(proc, &mockCLIRunner{})
+			if err != nil {
+				t.Fatal(err)
+			}
 			got, err := exc.IsAgentRunning()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("IsAgentRunning() error = %v, wantErr %v", err, tt.wantErr)
@@ -165,8 +171,11 @@ func TestKillAgent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			proc := &mockProcessManager{killErr: tt.killErr}
-			exc := New(proc, &mockCLIRunner{})
-			err := exc.KillAgent()
+			exc, err := New(proc, &mockCLIRunner{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = exc.KillAgent()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("KillAgent() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -227,8 +236,11 @@ func TestRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			runner := &mockCLIRunner{err: tt.runErr}
-			exc := New(&mockProcessManager{}, runner)
-			err := exc.Run(tt.owner, tt.repo, tt.prNumber, tt.body, tt.repoPath)
+			exc, err := New(&mockProcessManager{}, runner)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = exc.Run(tt.owner, tt.repo, tt.prNumber, tt.body, tt.repoPath)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -237,6 +249,34 @@ func TestRun(t *testing.T) {
 			}
 			if tt.wantDir != "" && runner.capturedDir != tt.wantDir {
 				t.Errorf("Run() に渡された dir = %q, want %q", runner.capturedDir, tt.wantDir)
+			}
+		})
+	}
+}
+
+// TestNew_NilGuard は nil 引数を渡した場合にエラーを返すことを検証します。
+// 検証対象: New  目的: nil インターフェース注入によるパニック防止
+func TestNew_NilGuard(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		proc    ProcessManager
+		runner  CLIRunner
+		wantErr bool
+	}{
+		{name: "proc が nil", proc: nil, runner: &mockCLIRunner{}, wantErr: true},
+		{name: "runner が nil", proc: &mockProcessManager{}, runner: nil, wantErr: true},
+		{name: "両方 nil", proc: nil, runner: nil, wantErr: true},
+		{name: "正常", proc: &mockProcessManager{}, runner: &mockCLIRunner{}, wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := New(tt.proc, tt.runner)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -189,8 +189,7 @@ outerLoop:
 				}
 				// MailboxUpdate なし → IDLE を継続して次の更新を待機
 			case <-timer.C:
-				// リフレッシュタイムアウト → IDLE を停止し、念のためフェッチも行う
-				shouldFetch = true
+				// リフレッシュタイムアウト → IDLE を停止（outerLoop 先頭でフェッチ）
 				break waitLoop
 			case <-ctx.Done():
 				if !timer.Stop() {
@@ -215,11 +214,6 @@ outerLoop:
 			return fmt.Errorf("IDLE 停止エラー: %w", err)
 		}
 
-		if shouldFetch {
-			if err := w.fetchAndProcess(c, handler); err != nil {
-				fmt.Fprintf(os.Stderr, "メッセージ処理エラー: %v\n", err)
-			}
-		}
 	}
 }
 

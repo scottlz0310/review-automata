@@ -94,12 +94,19 @@ type Executor struct {
 
 // New は Executor を構築します。
 // proc にプロセス管理実装、runner に CLI 実行実装を注入します。
-func New(proc ProcessManager, runner CLIRunner) *Executor {
+// proc または runner が nil の場合はエラーを返します。
+func New(proc ProcessManager, runner CLIRunner) (*Executor, error) {
+	if proc == nil {
+		return nil, fmt.Errorf("executor: proc は nil にできません")
+	}
+	if runner == nil {
+		return nil, fmt.Errorf("executor: runner は nil にできません")
+	}
 	return &Executor{
 		proc:   proc,
 		runner: runner,
 		names:  defaultAgentNames,
-	}
+	}, nil
 }
 
 // IsAgentRunning はエージェント CLI が起動中かどうかを返します。
