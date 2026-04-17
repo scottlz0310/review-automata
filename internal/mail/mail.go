@@ -137,6 +137,18 @@ func (w *Watcher) idleLoop(ctx context.Context, c *imapClient.Client, handler Me
 			if _, ok := update.(*imapClient.MailboxUpdate); ok {
 				shouldFetch = true
 			}
+			// 溜まっている updates をまとめてドレインし、IDLE 再開の無駄を減らす
+		drainLoop:
+			for {
+				select {
+				case u := <-updates:
+					if _, ok := u.(*imapClient.MailboxUpdate); ok {
+						shouldFetch = true
+					}
+				default:
+					break drainLoop
+				}
+			}
 		case <-timer.C:
 			// IDLE タイムアウト前にリフレッシュ
 		case <-ctx.Done():
