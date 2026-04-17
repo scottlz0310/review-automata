@@ -57,7 +57,7 @@ func FetchAndCheckout(dir string, prNumber int, cmd Commander) error {
 	// 既存ブランチの有無を事前確認: 存在する場合は ErrBranchExists を返す
 	branch := fmt.Sprintf("pr-%d", prNumber)
 	if _, err := cmd.Run(dir, "rev-parse", "--verify", branch); err == nil {
-		return fmt.Errorf("ブランチ %q %w", branch, ErrBranchExists)
+		return fmt.Errorf("ブランチ %q が既に存在します: %w", branch, ErrBranchExists)
 	}
 
 	refSpec := fmt.Sprintf("pull/%d/head:pr-%d", prNumber, prNumber)
