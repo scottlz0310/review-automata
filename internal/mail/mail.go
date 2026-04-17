@@ -121,19 +121,29 @@ func (w *Watcher) idleLoop(ctx context.Context, c *imapClient.Client, handler Me
 			idleDone <- c.Idle(stop, nil)
 		}()
 
+		timer := time.NewTimer(refreshInterval)
 		shouldFetch := false
 		select {
 		case update := <-updates:
+			if !timer.Stop() {
+				<-timer.C
+			}
 			if _, ok := update.(*imapClient.MailboxUpdate); ok {
 				shouldFetch = true
 			}
-		case <-time.After(refreshInterval):
+		case <-timer.C:
 			// IDLE タイムアウト前にリフレッシュ
 		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
 			close(stop)
 			<-idleDone
 			return ctx.Err()
 		case err := <-idleDone:
+			if !timer.Stop() {
+				<-timer.C
+			}
 			if err != nil {
 				return fmt.Errorf("IDLE エラー: %w", err)
 			}
@@ -187,10 +197,12 @@ func (w *Watcher) fetchAndProcess(c *imapClient.Client, handler MessageHandler) 
 			subject = msg.Envelope.Subject
 		}
 		body := extractTextBody(msg, section)
-		toMark = append(toMark, msg.SeqNum)
 
 		if handlerErr := handler(subject, body); handlerErr != nil {
 			fmt.Fprintf(os.Stderr, "ハンドラーエラー (subject: %q): %v\n", subject, handlerErr)
+		} else {
+			// handler が成功した場合のみ SEEN マーク対象に追加する
+			toMark = append(toMark, msg.SeqNum)
 		}
 	}
 
@@ -203,7 +215,9 @@ func (w *Watcher) fetchAndProcess(c *imapClient.Client, handler MessageHandler) 
 		markSet := new(imap.SeqSet)
 		markSet.AddNum(toMark...)
 		item := imap.FormatFlagsOp(imap.AddFlags, true)
-		_ = c.Store(markSet, item, []interface{}{imap.SeenFlag}, nil)
+		if err := c.Store(markSet, item, []interface{}{imap.SeenFlag}, nil); err != nil {
+			return fmt.Errorf("SEEN フラグ設定失敗: %w", err)
+		}
 	}
 
 	return nil
