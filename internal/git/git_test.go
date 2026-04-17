@@ -30,7 +30,7 @@ func TestFetchAndCheckout(t *testing.T) {
 	tests := []struct {
 		name      string
 		prNumber  int
-		nilCmd    bool        // true の場合 Commander に nil を渡す
+		nilCmd    bool // true の場合 Commander に nil を渡す
 		cmdErrors []error
 		wantErr   string      // 空文字なら正常系
 		wantCalls [][2]string // 期待するコマンド呼び出し [dir, args]
