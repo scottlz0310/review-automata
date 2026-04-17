@@ -40,10 +40,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler := buildHandler(rsv)
+	exc, err := executor.New(executor.ExecProcessManager{}, executor.ExecCLIRunner{})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "エラー: executor の初期化失敗: %v\n", err)
+		os.Exit(1)
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+
+	handler := buildHandler(ctx, rsv, exc)
 
 	fmt.Fprintf(os.Stderr, "情報: review-automata を起動しました (IMAP: %s, Mailbox: %s)\n", cfg.Addr, cfg.Mailbox)
 
@@ -61,7 +67,7 @@ func main() {
 // buildHandler は mail.MessageHandler を構築します。
 // パース失敗・リポジトリ未解決・checkout 失敗は STOP 条件として error を返しますが、
 // ループは継続します（次のメールを処理します）。
-func buildHandler(rsv *resolver.Resolver) mail.MessageHandler {
+func buildHandler(ctx context.Context, rsv *resolver.Resolver, exc *executor.Executor) mail.MessageHandler {
 	return func(subject, body string) error {
 		meta, err := parser.ParseSubject(subject)
 		if err != nil {
@@ -78,7 +84,7 @@ func buildHandler(rsv *resolver.Resolver) mail.MessageHandler {
 				return fmt.Errorf("STOP (checkout 失敗): %w", err)
 			}
 			// ブランチ既存 → エージェント起動判定（判定不能時も安全側＝確認あり）→ 強制更新
-			agentRunning, agentErr := executor.IsAgentRunning()
+			agentRunning, agentErr := exc.IsAgentRunning()
 			if agentErr != nil {
 				fmt.Fprintf(os.Stderr, "警告: エージェント起動確認に失敗しました: %v\n", agentErr)
 			}
@@ -99,7 +105,7 @@ func buildHandler(rsv *resolver.Resolver) mail.MessageHandler {
 				return fmt.Errorf("STOP (ユーザーキャンセル): PR #%d のブランチ強制更新をスキップしました", meta.Number)
 			}
 			if agentRunning {
-				if killErr := executor.KillAgent(); killErr != nil {
+				if killErr := exc.KillAgent(); killErr != nil {
 					return fmt.Errorf("STOP (エージェント終了失敗): %w", killErr)
 				}
 				fmt.Fprintln(os.Stderr, "情報: エージェント CLI の終了を要求しました")
@@ -110,9 +116,10 @@ func buildHandler(rsv *resolver.Resolver) mail.MessageHandler {
 		}
 
 		cleaned := parser.CleanBody(body)
+		if err := exc.Run(ctx, meta.Owner, meta.Repo, meta.Number, cleaned, repoPath); err != nil {
+			return fmt.Errorf("STOP (executor 失敗): %w", err)
+		}
 		fmt.Fprintf(os.Stderr, "情報: PR #%d (%s/%s) の処理完了\n", meta.Number, meta.Owner, meta.Repo)
-		// TODO: executor に cleaned を渡す（v0.5.0）
-		_ = cleaned
 
 		return nil
 	}

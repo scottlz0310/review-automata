@@ -124,6 +124,17 @@ outerLoop:
 			return err
 		}
 
+		// IDLE 再開前に UNSEEN メッセージをフェッチする。
+		// 前回の IDLE 停止中（fetchAndProcess 実行中）に届いたメールを取りこぼさないための保険。
+		// fetchAndProcess は SEEN フラグで二重処理を防ぐため、毎回呼んでも安全。
+		if err := w.fetchAndProcess(c, handler); err != nil {
+			fmt.Fprintf(os.Stderr, "メッセージ処理エラー: %v\n", err)
+		}
+
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
 		stop := make(chan struct{})
 		idleDone := make(chan error, 1)
 		go func() {
@@ -178,7 +189,7 @@ outerLoop:
 				}
 				// MailboxUpdate なし → IDLE を継続して次の更新を待機
 			case <-timer.C:
-				// リフレッシュタイムアウト → IDLE を停止
+				// リフレッシュタイムアウト → IDLE を停止（outerLoop 先頭でフェッチ）
 				break waitLoop
 			case <-ctx.Done():
 				if !timer.Stop() {
@@ -203,11 +214,6 @@ outerLoop:
 			return fmt.Errorf("IDLE 停止エラー: %w", err)
 		}
 
-		if shouldFetch {
-			if err := w.fetchAndProcess(c, handler); err != nil {
-				fmt.Fprintf(os.Stderr, "メッセージ処理エラー: %v\n", err)
-			}
-		}
 	}
 }
 

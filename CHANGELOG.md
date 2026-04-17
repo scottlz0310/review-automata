@@ -9,6 +9,42 @@
 
 ## [Unreleased]
 
+---
+
+## [0.5.0] - 2026-04-17
+
+### Added
+- `internal/executor`: `ProcessManager` インターフェース — `IsRunning` / `Kill` を抽象化（外部依存モック可能）
+- `internal/executor`: `CLIRunner` インターフェース — `RunWithStdin` を抽象化
+- `internal/executor`: `ExecProcessManager` — `tasklist` / `taskkill` を使う実装
+- `internal/executor`: `ExecCLIRunner` — stdin パイプで `claude` CLI を起動する実装、非ゼロ終了コードはエラー返却
+- `internal/executor`: `Executor` 構造体（`New` / `IsAgentRunning` / `KillAgent` / `BuildPrompt` / `Run`）
+- `internal/executor`: `BuildPrompt` — Mcp-Docker#38 仕様準拠のプロンプトテンプレート生成
+- `internal/executor/executor_test.go`: テーブル駆動テスト 11 ケース（BuildPrompt 3 / IsAgentRunning 3 / KillAgent 2 / Run 3）
+
+### Changed
+- `cmd/review-automata/main.go`: `executor.New(ExecProcessManager{}, ExecCLIRunner{})` で `Executor` を構築し `Run()` を呼び出すよう変更（E2E 統合完成）
+- `tasks.md`: v0.5.0 タスクセクション追加・全完了マーク
+
+---
+
+## [0.4.1] - 2026-04-17
+
+### Added
+- `internal/git`: `ErrBranchExists` sentinel error（`errors.Is` で判定可能）
+- `internal/git`: `ForceUpdate` — `checkout main` → `fetch --force` → `checkout pr-N` で既存ブランチを強制更新
+- `cmd/review-automata/main.go`: `ErrBranchExists` 検出時に `[y/N]` 確認プロンプトを常時表示し、承認後に `ForceUpdate` を実行するフロー
+
+### Changed
+- `internal/executor`: `IsAgentRunning()` を `(bool, error)` に変更。判定不能時はエラーを返す
+- `internal/executor`: `KillAgent()` を修正。プロセス未存在は許容、`taskkill` 実行失敗時はエラーを返す
+- `internal/git`: `ErrBranchExists` ラップ時のエラーメッセージを `"ブランチ %q が既に存在します: %w"` に修正
+- `internal/git/git_test.go`: `TestFetchAndCheckout_ErrBranchExists` / `TestForceUpdate`（6ケース）追加
+
+---
+
+## [0.4.0] - 2026-04-17
+
 ### Added
 - `internal/mail`: `Watcher` — IMAP IDLE ベースのメール監視（PoC）。`go-imap` v1 + App Password 認証
 - `internal/mail`: `Config` / `MessageHandler` 型、`New` / `Watch` 関数
@@ -23,7 +59,7 @@
 
 ---
 
-## [0.3.0] - 2026-04-15 (Unreleased)
+## [0.3.0] - 2026-04-15
 
 ### Added
 - `internal/resolver`: `Resolver.Resolve` — `~/src` 配下から owner/repo に一致するリポジトリを特定（STOP条件: 0件/複数件/origin不一致）
