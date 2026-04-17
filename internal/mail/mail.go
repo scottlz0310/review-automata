@@ -212,10 +212,10 @@ outerLoop:
 }
 
 // fetchAndProcess は UNSEEN メッセージを取得し handler に渡します。
-// 本日（起動日）に受信したメッセージのみを対象とし、過去の未読メールは処理しません。
+// 呼び出し時点の当日（ローカル時刻）に受信したメッセージのみを対象とし、過去の未読メールは処理しません。
 // handler が成功したメッセージのみ SEEN フラグを設定します（失敗時は未読のまま残り再処理可能）。
 func (w *Watcher) fetchAndProcess(c *imapClient.Client, handler MessageHandler) error {
-	// 本日0時（ローカル時刻）以降のメールのみを対象にする
+	// 呼び出し時点の当日0時（ローカル時刻）以降のメールのみを対象にする
 	now := time.Now()
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
