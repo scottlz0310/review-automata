@@ -10,6 +10,22 @@
 ## [Unreleased]
 
 ### Added
+- `internal/mail`: `Watcher` — IMAP IDLE ベースのメール監視（PoC）。`go-imap` v1 + App Password 認証
+- `internal/mail`: `Config` / `MessageHandler` 型、`New` / `Watch` 関数
+- `internal/mail`: `extractTextBody` — MIME メッセージから text/plain 部分を抽出（`go-message` 使用）
+- `internal/mail/mail_test.go`: テーブル駆動テスト（Config バリデーション 5 件 / Watch 無効設定 2 件 / extractTextBody 3 件）
+- `cmd/review-automata/main.go`: E2E エントリポイント（メール監視 → パース → リポジトリ解決 → checkout の統合フロー）
+- `sample.env`: IMAP 接続設定テンプレート（`MAIL_IMAP_ADDR` / `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_MAILBOX`）
+- `.gitignore`: `.env` をコミット対象外に追加
+
+### Changed
+- `go.mod` / `go.sum`: `github.com/emersion/go-imap` v1.2.1、`github.com/emersion/go-message` v0.18.2、`github.com/joho/godotenv` v1.5.1 を追加
+
+---
+
+## [0.3.0] - 2026-04-15 (Unreleased)
+
+### Added
 - `internal/resolver`: `Resolver.Resolve` — `~/src` 配下から owner/repo に一致するリポジトリを特定（STOP条件: 0件/複数件/origin不一致）
 - `internal/resolver`: `GitRunner` インターフェース + `ExecGitRunner` 実装
 - `internal/resolver/resolver_test.go`: テーブル駆動テスト（正常系2件 + STOP 7件 + URL バリアント 8件）

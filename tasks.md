@@ -65,4 +65,13 @@ Epic: [#3](https://github.com/scottlz0310/review-automata/issues/3)
 
 ## v0.4.0 以降
 
-詳細設計後に展開。
+Epic: [#4](https://github.com/scottlz0310/review-automata/issues/4)
+
+| # | タスク | 状態 |
+|---|--------|------|
+| 1 | `go-imap` + IDLE によるメール受信ループ (`internal/mail/`) | ✅ |
+| 2 | Gmail App Password 認証 | ✅ |
+| 3 | 新着メール → パース → リポジトリ解決 → Git checkout の E2E 統合 | ✅ |
+| 4 | STOP 条件の統合（各パッケージ実装済み + main.go で連結） | ✅ |
+| 5 | `sample.env` 設定テンプレート | ✅ |
+| 6 | Windows 上での動作確認 | 🔲 手動確認待ち |
