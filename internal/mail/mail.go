@@ -110,12 +110,15 @@ func (w *Watcher) connect() (*imapClient.Client, error) {
 
 // idleLoop は IDLE でメールボックスを監視します。
 // Gmail の IDLE タイムアウト（29 分）を考慮し、15 分ごとにリフレッシュします。
+// MailboxUpdate を受信した場合のみ IDLE を停止してフェッチします。
+// MailboxUpdate 以外の更新（Expunge 等）は IDLE を継続したまま待機し続けます。
 func (w *Watcher) idleLoop(ctx context.Context, c *imapClient.Client, handler MessageHandler) error {
 	updates := make(chan imapClient.Update, 10)
 	c.Updates = updates
 
 	const refreshInterval = 15 * time.Minute
 
+outerLoop:
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -129,43 +132,70 @@ func (w *Watcher) idleLoop(ctx context.Context, c *imapClient.Client, handler Me
 
 		timer := time.NewTimer(refreshInterval)
 		shouldFetch := false
-		select {
-		case update := <-updates:
-			if !timer.Stop() {
-				<-timer.C
-			}
-			if _, ok := update.(*imapClient.MailboxUpdate); ok {
-				shouldFetch = true
-			}
-			// 溜まっている updates をまとめてドレインし、IDLE 再開の無駄を減らす
-		drainLoop:
-			for {
-				select {
-				case u := <-updates:
-					if _, ok := u.(*imapClient.MailboxUpdate); ok {
-						shouldFetch = true
+
+	waitLoop:
+		for {
+			select {
+			case update, ok := <-updates:
+				if !ok {
+					// updates チャネルクローズ → 接続切断
+					if !timer.Stop() {
+						<-timer.C
 					}
-				default:
-					break drainLoop
+					close(stop)
+					<-idleDone
+					return fmt.Errorf("IMAP 接続が切断されました（更新チャネルクローズ）")
 				}
+				if _, ok2 := update.(*imapClient.MailboxUpdate); ok2 {
+					shouldFetch = true
+				}
+				// 残りの pending updates をドレインし、まとめて判定する
+			drainLoop:
+				for {
+					select {
+					case u, ok := <-updates:
+						if !ok {
+							if !timer.Stop() {
+								<-timer.C
+							}
+							close(stop)
+							<-idleDone
+							return fmt.Errorf("IMAP 接続が切断されました（更新チャネルクローズ）")
+						}
+						if _, ok2 := u.(*imapClient.MailboxUpdate); ok2 {
+							shouldFetch = true
+						}
+					default:
+						break drainLoop
+					}
+				}
+				if shouldFetch {
+					// MailboxUpdate あり → IDLE を停止してフェッチへ
+					if !timer.Stop() {
+						<-timer.C
+					}
+					break waitLoop
+				}
+				// MailboxUpdate なし → IDLE を継続して次の更新を待機
+			case <-timer.C:
+				// リフレッシュタイムアウト → IDLE を停止
+				break waitLoop
+			case <-ctx.Done():
+				if !timer.Stop() {
+					<-timer.C
+				}
+				close(stop)
+				<-idleDone
+				return ctx.Err()
+			case err := <-idleDone:
+				if !timer.Stop() {
+					<-timer.C
+				}
+				if err != nil {
+					return fmt.Errorf("IDLE エラー: %w", err)
+				}
+				continue outerLoop
 			}
-		case <-timer.C:
-			// IDLE タイムアウト前にリフレッシュ
-		case <-ctx.Done():
-			if !timer.Stop() {
-				<-timer.C
-			}
-			close(stop)
-			<-idleDone
-			return ctx.Err()
-		case err := <-idleDone:
-			if !timer.Stop() {
-				<-timer.C
-			}
-			if err != nil {
-				return fmt.Errorf("IDLE エラー: %w", err)
-			}
-			continue
 		}
 
 		close(stop)

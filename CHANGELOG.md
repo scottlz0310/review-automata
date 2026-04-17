@@ -13,7 +13,7 @@
 - `internal/mail`: `Watcher` — IMAP IDLE ベースのメール監視（PoC）。`go-imap` v1 + App Password 認証
 - `internal/mail`: `Config` / `MessageHandler` 型、`New` / `Watch` 関数
 - `internal/mail`: `extractTextBody` — MIME メッセージから text/plain 部分を抽出（`go-message` 使用）
-- `internal/mail/mail_test.go`: テーブル駆動テスト（Config バリデーション 5 件 / Watch 無効設定 2 件 / extractTextBody 3 件）
+- `internal/mail/mail_test.go`: テーブル駆動テスト（Config バリデーション 6 件 / Watch 無効設定 2 件 / extractTextBody 3 件）
 - `cmd/review-automata/main.go`: E2E エントリポイント（メール監視 → パース → リポジトリ解決 → checkout の統合フロー）
 - `sample.env`: IMAP 接続設定テンプレート（`MAIL_IMAP_ADDR` / `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_MAILBOX`）
 - `.gitignore`: `.env` をコミット対象外に追加
