@@ -61,10 +61,11 @@ func (ExecProcessManager) Kill(names []string) error {
 type ExecCLIRunner struct{}
 
 // RunWithStdin は stdin をパイプして claude CLI を起動します。
+// --print フラグにより非対話モードで実行し、stdin のプロンプトを処理させます。
 // dir が空でない場合は cmd.Dir に設定し、対象リポジトリのディレクトリで実行します。
 // 非ゼロ終了コードはエラーとして返します。
 func (ExecCLIRunner) RunWithStdin(stdin, dir string) error {
-	cmd := exec.Command("claude")
+	cmd := exec.Command("claude", "--print")
 	cmd.Stdin = strings.NewReader(stdin)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
