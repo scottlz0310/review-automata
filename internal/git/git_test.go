@@ -51,6 +51,10 @@ func TestFetchAndCheckout(t *testing.T) {
 			// rev-parse=失敗(ブランチなし), fetch=失敗
 			cmdErrors: []error{errors.New("no branch"), errors.New("network error")},
 			wantErr:   "PR ブランチの取得失敗",
+			wantCalls: [][2]string{
+				{"/repo", "rev-parse --verify pr-42"},
+				{"/repo", "fetch origin pull/42/head:pr-42"},
+			},
 		},
 		{
 			name:     "STOP: checkout 失敗",
@@ -58,12 +62,18 @@ func TestFetchAndCheckout(t *testing.T) {
 			// rev-parse=失敗(ブランチなし), fetch=成功, checkout=失敗
 			cmdErrors: []error{errors.New("no branch"), nil, errors.New("checkout error")},
 			wantErr:   "PR ブランチの checkout 失敗",
+			wantCalls: [][2]string{
+				{"/repo", "rev-parse --verify pr-99"},
+				{"/repo", "fetch origin pull/99/head:pr-99"},
+				{"/repo", "checkout pr-99"},
+			},
 		},
 		{
 			name:      "STOP: prNumber が 0 以下",
 			prNumber:  0,
 			cmdErrors: nil,
 			wantErr:   "PR番号が不正です",
+			wantCalls: nil, // 入力検証でSTOP: コマンド呼び出しなし
 		},
 		{
 			name:     "STOP: 既存ブランチが存在する",
@@ -71,12 +81,16 @@ func TestFetchAndCheckout(t *testing.T) {
 			// rev-parse=成功（ブランチ存在）
 			cmdErrors: []error{nil},
 			wantErr:   "が既に存在します",
+			wantCalls: [][2]string{
+				{"/repo", "rev-parse --verify pr-42"},
+			},
 		},
 		{
 			name:      "STOP: dir が空文字",
 			prNumber:  42,
 			cmdErrors: nil,
 			wantErr:   "対象ディレクトリが未指定です",
+			wantCalls: nil, // 入力検証でSTOP: コマンド呼び出しなし
 		},
 	}
 
@@ -97,15 +111,12 @@ func TestFetchAndCheckout(t *testing.T) {
 				if !strings.Contains(err.Error(), tt.wantErr) {
 					t.Errorf("エラーメッセージ不一致: got %q, want contains %q", err.Error(), tt.wantErr)
 				}
-				return
-			}
-
-			if err != nil {
+			} else if err != nil {
 				t.Errorf("予期しないエラー: %v", err)
 				return
 			}
 
-			// 正常系: コマンド呼び出し内容を検証
+			// 成功系・失敗系の両方で、意図した位置で STOP しているかを検証
 			if len(cmd.calls) != len(tt.wantCalls) {
 				t.Errorf("呼び出し回数不一致: got %d, want %d", len(cmd.calls), len(tt.wantCalls))
 				return

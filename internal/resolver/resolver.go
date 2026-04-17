@@ -68,7 +68,14 @@ func New(runner GitRunner) (*Resolver, error) {
 }
 
 // Resolve は owner/repo に一致するローカルリポジトリのパスを返します。
-// 候補が 0件・複数件・origin 不一致の場合は STOP 条件として error を返します。
+// 以下の場合は STOP 条件として error を返します:
+//   - GitRunner 未設定
+//   - BaseDir 不在・探索失敗
+//   - 候補 0 件
+//   - 候補複数かつ一部の origin URL 取得失敗（誤ったリポジトリ選択を防ぐため中止）
+//   - 全候補で origin URL 取得失敗
+//   - origin 不一致
+//   - 一致リポジトリが複数件
 func (r *Resolver) Resolve(owner, repo string) (string, error) {
 	if r.GitRunner == nil {
 		return "", fmt.Errorf("GitRunner が未設定です: Resolver を正しく初期化してください")
@@ -100,6 +107,14 @@ func (r *Resolver) Resolve(owner, repo string) (string, error) {
 	if originCheckedCount == 0 {
 		return "", fmt.Errorf(
 			"origin 取得失敗: %s/%s の候補 %d 件すべてで origin URL を取得できませんでした: %s",
+			owner, repo, len(candidates), strings.Join(originErrs, "; "),
+		)
+	}
+
+	// 候補が複数あり一部で origin 取得失敗した場合、未確認候補が残るため安全のため STOP する
+	if len(candidates) > 1 && len(originErrs) > 0 {
+		return "", fmt.Errorf(
+			"origin 取得失敗: %s/%s は候補が %d 件あり、一部候補の origin URL を取得できないため安全のため特定を中止しました: %s",
 			owner, repo, len(candidates), strings.Join(originErrs, "; "),
 		)
 	}

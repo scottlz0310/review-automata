@@ -124,6 +124,19 @@ func TestResolve(t *testing.T) {
 			setup:   func(baseDir string) resolver.GitRunner { return &mockGitRunner{} },
 			wantErr: "origin 取得失敗",
 		},
+		{
+			name:  "STOP: 候補複数かつ一部のorigin取得失敗",
+			dirs:  [][]string{{"owner1", "myrepo"}, {"owner2", "myrepo"}},
+			owner: "owner1",
+			repo:  "myrepo",
+			// owner1/myrepo は URL あり、owner2/myrepo は URL なし → 未確認候補が残るため安全のため STOP
+			setup: func(baseDir string) resolver.GitRunner {
+				return &mockGitRunner{urls: map[string]string{
+					filepath.Join(baseDir, "owner1", "myrepo"): "https://github.com/owner1/myrepo.git",
+				}}
+			},
+			wantErr: "一部候補の origin URL",
+		},
 	}
 
 	for _, tt := range tests {
